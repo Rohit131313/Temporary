@@ -15,5 +15,6 @@ flask-cors
 fastapi
 requests
 uvicorn
+dlib
 numpy
 
