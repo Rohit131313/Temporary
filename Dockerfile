@@ -1,27 +1,28 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
-# Install system dependencies required for dlib and face recognition
+# System dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential cmake \
-    libopenblas-dev liblapack-dev \
-    libx11-dev libgtk-3-dev \
-    libboost-all-dev \
-    libjpeg-dev \
+    build-essential \
+    cmake \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies
+# Copy and install wheel
+COPY dlib-19.24.99-cp312-cp312-win_amd64.whl .
+RUN pip install ./dlib-19.24.99-cp312-cp312-win_amd64.whl
+
+# Copy other files
 COPY requirements.txt .
-RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Copy project files
+# Copy rest of the code
 COPY . .
 
-# Expose port
+# Expose your app on port 8000 (FastAPI)
 EXPOSE 8000
 
-# Run the application
+# Start FastAPI server
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
