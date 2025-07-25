@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #93b9f2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            background: rgb(186, 241, 165);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        video {
+            width: 100%;
+            border-radius: 10px;
+        }
+        canvas {
+            display: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #message {
+            font-size: 16px;
+            font-weight: bold;
+            color: #d9534f;
+            margin-top: 10px;
+        }
+        .spinner {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        #loginBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: auto;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="loginBtn" onclick="window.location.href='/login'">Login</button>
+
+
+        <h2>Attendance System</h2>
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
+        <button id="capture">Capture Selfie</button>
+        <button id="submit" disabled>Submit Attendance</button>
+        <div class="spinner" id="spinner"></div>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const submitButton = document.getElementById('submit');
+        const message = document.getElementById('message');
+        const spinner = document.getElementById('spinner');
+        let faceMesh, canvasBlob = null;
+
+        // ✅ Check if getUserMedia is supported before starting the camera
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert("Error: Camera access is not supported on this browser.");
+            message.textContent = "Camera access is not supported on this browser.";
+            throw new Error("getUserMedia() is not available.");
+        } else {
+            console.log("✅ Camera access is supported!");
+        }
+
+        async function loadFaceMesh() {
+            faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+            faceMesh.onResults(onResults);
+        }
+        loadFaceMesh();
+
+        const camera = new Camera(video, {
+            onFrame: async () => {
+                await faceMesh.send({ image: video });
+            },
+            width: 640,
+            height: 480
+        });
+        camera.start();
+
+        let blinkDetected = false;
+        let eyesOpenAgain = false;
+        let blinkStartTime = 0;
+
+        function onResults(results) {
+            if (results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+                const leftEye = [landmarks[159].y, landmarks[145].y];
+                const rightEye = [landmarks[386].y, landmarks[374].y];
+                
+                let leftEAR = Math.abs(leftEye[0] - leftEye[1]);
+                let rightEAR = Math.abs(rightEye[0] - rightEye[1]);
+                let ear = (leftEAR + rightEAR) / 2;
+
+                if (ear < 0.02 && !blinkDetected) {
+                    blinkDetected = true;
+                    blinkStartTime = Date.now();
+                } else if (blinkDetected && ear > 0.02) {
+                    let blinkDuration = Date.now() - blinkStartTime;
+                    if (blinkDuration > 100 && blinkDuration < 800) {
+                        eyesOpenAgain = true;
+                    }
+                }
+            }
+        }
+
+        async function detectBlink() {
+            message.textContent = "Blink your eyes to verify liveness.";
+            blinkDetected = false;
+            eyesOpenAgain = false;
+            blinkStartTime = 0;
+            
+            for (let i = 0; i < 30; i++) {
+                if (blinkDetected && eyesOpenAgain) {
+                    message.textContent = "Liveness verified! Capturing image...";
+                    setTimeout(captureImage, 1000);
+                    return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            message.textContent = "Blink not detected! Try again.";
+        }
+
+        function captureImage() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                if (blob) {
+                    canvasBlob = blob;
+                    submitButton.disabled = false;
+                    message.textContent = "Image captured successfully!";
+                }
+            }, 'image/png');
+        }
+
+        captureButton.addEventListener('click', () => {
+            detectBlink();
+        });
+
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude
+                        }),
+                        error => reject(error)
+                    );
+                } else {
+                    reject("Geolocation not supported");
+                }
+            });
+        }
+
+        submitButton.addEventListener('click', async () => {
+            if (!canvasBlob) {
+                message.textContent = "Please capture a selfie first.";
+                return;
+            }
+            message.textContent = "Submitting...";
+            spinner.style.display = "block";
+
+            try {
+                const userLocation = await getUserLocation();
+                const formData = new FormData();
+                formData.append('image', canvasBlob, 'selfie.png');
+                formData.append('latitude', userLocation.latitude);
+                formData.append('longitude', userLocation.longitude);
+                
+                const BASE_URL = "http://localhost:5000"
+                // const BASE_URL = "https://c0a7-2409-40c4-4-35bc-99d5-3443-fb5d-1cf6.ngrok-free.app"
+                const response = await fetch(`${BASE_URL}/process`, { //'http://localhost:5000/process'
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                spinner.style.display = "none";
+
+                let isMarked = JSON.parse(result.attendance_marked_already);
+                message.innerHTML = isMarked ? 
+                    "<span style='color: #d9534f;'>Attendance is Already Marked</span>" : 
+                    `<span style='color: #28a745;'>
+                        Name: ${result.name}<br>
+                        Branch: ${result.major}<br>
+                        Batch: ${result.batch}<br>
+                        Attendance Marked
+                    </span>`;
+                
+                
+                
+            } catch (error) {
+                console.error("Error:", error);
+                spinner.style.display = "none";
+                message.textContent = error;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+cmake
+# to install dlib 
+# use this command python -m pip install dlib-19.24.99-cp312-cp312-win_amd64.whl
+face-recognition
+cvzone
+opencv-python
+firebase-admin
+imagekitio
+python-dotenv
+streamlit_webrtc
+flask
+geopy
+pyngrok
+flask-cors
+fastapi
+requests

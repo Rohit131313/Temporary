@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Table</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='adminDashboard.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+</head>
+<body>
+<div class="container">
+    <h1>Attendance Management</h1>
+
+    <div class="card">
+        <label for="batch">Select Batch:</label>
+        <select id="batch">
+            <option value="2026">2026</option>
+        </select>
+
+        <label for="branch">Select Branch:</label>
+        <select id="branch">
+            <option value="IT">IT</option>
+        </select>
+
+        <label for="datePicker">Select Date:</label>
+        <input type="date" id="datePicker">
+        <button class="primary" onclick="loadAttendance()">Load Attendance</button>
+
+    </div>
+    <div class="card">
+        <label for="studentSelect">Student ID:</label>
+        <input type="text" id="studentid">
+        
+        <button class="primary" onclick="loadCalendar()">View Attendance</button>
+        <div id="calendarView" class="card">
+            <h3>Attendance Calendar</h3>
+            <div id="calendar" class="calendar-grid"></div>
+            <!-- <div id="calendarGrid" class="calendar-grid"></div> -->
+        </div>
+    </div>
+    <div class="card">
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+    
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">
+    
+        <button class="export" onclick="exportExcelWithDateRange()">Export Date Range Excel File</button>
+    </div>
+    <div class="card">
+        <button class="secondary" onclick="markHolidayForAll()">Mark Holiday</button>
+    </div>
+        <button class="logout" id="logoutBtn" onclick="window.location.href='/adminLogin'">Logout</button>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card" style="overflow-x:auto;">
+        <div class="table-responsive">
+            <table id="attendanceTable" border="1" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Scholor Number</th>
+                        <th>Name</th>
+                        <th>Attendance</th>
+                        <th>Remark</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Update Details</h2>
+        <p id="modalStudentName"></p>
+        <label>Status:
+            <select id="modalStatus">
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="holiday">Holiday</option>
+            </select>
+        </label><br><br>
+        <label>Remark:
+            <input type="text" id="modalRemark" placeholder="Enter remark">
+        </label><br><br>
+        <button onclick="submitModal()">Submit</button>
+        <button onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="{{ url_for('static', filename='adminDashboard.js') }}"></script>
+</body>
+</html>
+

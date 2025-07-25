@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='adminLogin.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Admin Login</h2>
+        <input type="email" id="adminEmail" placeholder="Admin Email" required>
+        <input type="password" id="adminPassword" placeholder="Password" required>
+        <button id="adminLoginBtn">
+            <span>Proceed to Admin Panel</span>
+            <div class="spinner"></div>
+        </button>
+        <p><a href="{{ url_for('login') }}">Go to Student Login</a></p>
+        <div id="adminAlertBox" class="alert hidden"></div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='adminLogin.js') }}"></script>
+</body>
+</html>
